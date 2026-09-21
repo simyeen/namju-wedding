@@ -80,6 +80,14 @@ body{background:#fff;color:#171717}main{box-shadow:none}.top{color:#171717;backg
 .winter-opening .hero .scroll-link{margin:18px 0}.winter-opening .hero .sample{margin:12px 0}
 @media(max-height:720px){.winter-opening .hero-content{padding:22px 20px}.winter-opening .hero .eyebrow{margin-bottom:16px}.winter-opening .hero .script{font-size:23px;margin:16px 0}.winter-opening .date-mark{padding:14px;margin:16px auto}.winter-opening .hero h1{font-size:36px;margin:16px 0}.winter-opening .hero p{line-height:1.65}.winter-opening .scroll-link{margin:12px 0}}
 @media(prefers-reduced-motion:reduce){.winter-opening{height:auto}.winter-opening .hero{position:relative;height:auto;min-height:80svh}.winter-opening .hero-content{transform:none}}
+
+/* Distinct foreground snowfall over a cool winter sky. */
+.winter-opening .snow-veil{background:linear-gradient(155deg,#abc6dce0 0%,#cfdfebde 50%,#e4eef6da 100%);filter:none}
+.snow-dot{z-index:2;background:#fff;box-shadow:0 1px 3px #31536b30,0 0 8px #ffffff65;opacity:.95;animation-name:snowfall-depth}
+.snow-dot:nth-child(3n){filter:blur(.6px);opacity:.8}
+.snow-dot:nth-child(3n + 1){box-shadow:0 1px 4px #31536b25,0 0 9px #fff9}
+@keyframes snowfall-depth{0%{transform:translate3d(-20px,-25px,0)}40%{transform:translate3d(20px,42svh,0)}75%{transform:translate3d(-8px,78svh,0)}100%{transform:translate3d(32px,110svh,0)}}
+@media(prefers-reduced-motion:reduce){.snow-dot{animation:none}}
 </style></head><body><header class="top"><a href="#home">N <span>&</span> J</a><span>우리의 첫 번째 겨울</span><a href="#location">오시는 길 ↗</a></header><main id="home">
 <div class="winter-opening"><section class="hero"><div class="snow-stage" aria-hidden="true"><div class="snow-veil"></div></div><div class="hero-content"><p class="eyebrow">THE WEDDING OF</p><p class="script">A day to remember</p><h1>남일 <span>&</span> 주희</h1><div class="date-mark"><span>2027</span><strong>01.30</strong><span>SATURDAY · 15:00</span></div><p>서로의 계절이 되어<br>함께 걸어가려 합니다.</p><a class="scroll-link" href="#invitation">소중한 당신을 초대합니다 <span>↓</span></a><p class="sample">NAMJU WEDDING · 2027.01.30</p></div></section></div>
 <figure class="photo-space reveal"><div class="photo-placeholder photo-portrait" role="img" aria-label="두 사람의 대표 사진이 들어갈 공간"><span>OUR WINTER · 01</span></div></figure><div class="nature-quote reveal"><span>THE SEA, THE SKY, AND US</span><p>바다처럼 깊게, 하늘처럼 넓게<br>서로의 숲이 되어.</p></div><section id="invitation" class="section invitation"><p class="eyebrow">INVITATION</p><h2>함께하는 시작에<br>당신을 초대합니다.</h2><p>작은 일상에도 함께 웃던 두 사람이<br>이제 같은 곳을 바라보며 걸어갑니다.<br><br>저희의 새로운 시작을<br>따뜻한 마음으로 축복해 주세요.</p><div class="names"><p><span>신랑</span> 남일</p><i>&</i><p><span>신부</span> 주희</p></div></section>
@@ -99,7 +107,7 @@ const snowHero=document.querySelector('.hero');
 const snowStage=document.querySelector('.snow-stage');
 const motionQuery=matchMedia('(prefers-reduced-motion: reduce)');
 if(!motionQuery.matches){
-for(let n=0;n<26;n++){const dot=document.createElement('i');dot.className='snow-dot';dot.style.setProperty('--x',((n*37)%100)+'%');dot.style.setProperty('--size',(3+n%5)+'px');dot.style.setProperty('--duration',(8+n%7)+'s');dot.style.setProperty('--delay',(-n*.7)+'s');snowStage.append(dot);}
+for(let n=0;n<84;n++){const dot=document.createElement('i');dot.className='snow-dot';dot.style.setProperty('--x',((n*37)%100)+'%');dot.style.setProperty('--size',(3+(n%3)*3+n%4)+'px');dot.style.setProperty('--duration',(5+(n%3)*3+n%4)+'s');dot.style.setProperty('--delay',(-n*1.37)+'s');snowStage.append(dot);}
 let frame=0;
 function updateSnow(){const progress=Math.min(1,Math.max(0,-document.querySelector('.winter-opening').getBoundingClientRect().top/(innerHeight*1.35)));const clear=Math.pow(progress,2.4);snowHero.style.setProperty('--snow-opacity',String(1-clear));snowHero.style.setProperty('--winter-clear',String(clear));snowHero.style.setProperty('--snow-lift',(-clear*120)+'px');snowHero.style.setProperty('--text-frost',((1-clear)*1.1)+'px');snowStage.style.visibility=progress===1?'hidden':'visible';snowStage.querySelectorAll('.snow-dot').forEach(dot=>dot.style.animationPlayState=progress===1?'paused':'running');frame=0;}
 function scheduleSnow(){if(!frame)frame=requestAnimationFrame(updateSnow);}
