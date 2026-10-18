@@ -7,7 +7,7 @@ HTML, CSS, JavaScript와 이미지로 구성된 정적 사이트입니다.
 저장소 폴더에서 실행합니다.
 
 ```sh
-python3 -m http.server 3000 --bind 127.0.0.1
+npm run dev
 ```
 
 브라우저에서 http://127.0.0.1:3000 을 엽니다.
