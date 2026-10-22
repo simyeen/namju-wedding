@@ -1,6 +1,6 @@
 'use strict';
 const byId = id => document.getElementById(id);
-document.querySelectorAll('[data-open]').forEach(button => button.addEventListener('click', () => {
+document.querySelectorAll('[data-open]').forEach(button => button.addEventListener('click', async () => {
   const dialog = byId(button.dataset.open);
   if(dialog.id === 'letter-dialog'){
     cancelLetterAnimation();
@@ -14,6 +14,15 @@ document.querySelectorAll('[data-open]').forEach(button => button.addEventListen
     byId('letter-recipient').textContent='';
     byId('letter-body').textContent='';
     byId('letter-theme').textContent='';
+  }
+  if(dialog.id === 'calendar-dialog' && !matchMedia('(prefers-reduced-motion: reduce)').matches){
+    if(button.disabled)return;
+    button.disabled=true;
+    const panel=byId('calendar');
+    panel.classList.add('has-heart','is-bursting');
+    await new Promise(resolve=>setTimeout(resolve,720));
+    panel.classList.remove('is-bursting');
+    button.disabled=false;
   }
   dialog.showModal();
   dialog.scrollTop=0;
@@ -55,10 +64,34 @@ function showCopyToast(message) {
    copyToastClearTimer = setTimeout(() => { toast.textContent = ''; }, 300);
  }, 1000);
 }
-document.querySelectorAll('[data-copy]').forEach(button => button.addEventListener('click', async () => {
- const ok = await copyText(button.dataset.copy);
- showCopyToast(ok ? '계좌번호를 복사했어요' : '복사하지 못했어요. 계좌번호를 길게 눌러 복사해 주세요.');
-}));
+document.querySelectorAll('[data-copy]').forEach(button => {
+ const label = document.createElement('span');
+ label.className = 'copy-label';
+ label.textContent = button.textContent;
+ button.replaceChildren(label);
+ const check = document.createElement('span');
+ check.className = 'copy-check';
+ check.textContent = '✓';
+ check.setAttribute('aria-hidden', 'true');
+ button.append(check);
+ const originalLabel = button.getAttribute('aria-label');
+ const resetDelay = button.closest('.account-card')?.querySelector('h2')?.textContent.trim() === '신랑측 계좌번호' ? 1000 : 2000;
+ let resetTimer;
+ button.addEventListener('click', async () => {
+  const ok = await copyText(button.dataset.copy);
+  if (ok) {
+   clearTimeout(resetTimer);
+   button.classList.add('is-copied');
+   button.setAttribute('aria-label', '계좌번호 복사 완료');
+   resetTimer = setTimeout(() => {
+    button.classList.remove('is-copied');
+    if (originalLabel) button.setAttribute('aria-label', originalLabel);
+    else button.removeAttribute('aria-label');
+   }, resetDelay);
+  }
+  showCopyToast(ok ? '축하 해주셔서 감사합니다 🎉' : '복사하지 못했어요. 계좌번호를 길게 눌러 복사해 주세요.');
+ });
+});
 byId('share').addEventListener('click', async () => {
  const url = new URL(location.href); url.hash = '';
  if (navigator.share && window.isSecureContext) {
@@ -175,23 +208,85 @@ window.initWeddingMap=function(){
 };
 const mapScript=document.createElement('script');mapScript.src='https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=sr88bskr5z&submodules=geocoder&callback=initWeddingMap';mapScript.async=true;mapScript.onload=window.initWeddingMap;mapScript.onerror=mapUnavailable;document.head.append(mapScript);setTimeout(()=>{if(!mapFinished)mapUnavailable("timeout");},12000);
 
-// Single-open accordion with a CSS grid height transition in both directions.
-const faqTriggers=[...document.querySelectorAll('.faq-trigger')];
-function setFaqOpen(trigger,open){
- trigger.setAttribute('aria-expanded',String(open));
- const answer=byId(trigger.getAttribute('aria-controls'));
- answer.classList.toggle('is-open',open);
- answer.inert=!open;
-}
-faqTriggers.forEach(trigger=>trigger.addEventListener('click',()=>{
- const open=trigger.getAttribute('aria-expanded')!=='true';
- faqTriggers.forEach(other=>setFaqOpen(other,other===trigger&&open));
-}));
-document.querySelector('.faq-guide').addEventListener('click',()=>{
- faqTriggers.forEach((trigger,index)=>setFaqOpen(trigger,index===0));
- faqTriggers[0].focus({preventScroll:true});
- faqTriggers[0].scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'});
-});
+// Swipe, keyboard arrows and pagination share the same active card.
+(()=>{
+ const carousel=document.querySelector('.faq-carousel');
+ const cards=[...document.querySelectorAll('.faq-card')];
+ const dots=[...document.querySelectorAll('.faq-dot')];
+ let active=0,frame=0;
+ const motion=matchMedia('(prefers-reduced-motion: reduce)');
+ function update(){
+  const left=carousel.getBoundingClientRect().left+carousel.clientWidth*.082;
+  active=cards.reduce((best,card,i)=>Math.abs(card.getBoundingClientRect().left-left)<Math.abs(cards[best].getBoundingClientRect().left-left)?i:best,0);
+  dots.forEach((dot,i)=>{dot.classList.toggle('is-active',i===active);dot.setAttribute('aria-current',String(i===active));});
+ }
+ function go(index){
+  const card=cards[Math.max(0,Math.min(cards.length-1,index))];
+  carousel.scrollTo({left:carousel.scrollLeft+card.getBoundingClientRect().left-carousel.getBoundingClientRect().left-carousel.clientWidth*.082,behavior:motion.matches?'instant':'smooth'});
+ }
+ dots.forEach((dot,i)=>dot.addEventListener('click',()=>go(i)));
+ carousel.addEventListener('scroll',()=>{if(!frame)frame=requestAnimationFrame(()=>{frame=0;update();});},{passive:true});
+ carousel.addEventListener('keydown',event=>{if(event.key==='ArrowRight'||event.key==='ArrowLeft'){event.preventDefault();go(active+(event.key==='ArrowRight'?1:-1));}});
+ cards.forEach((card,index)=>{
+  const button=card.querySelector('.faq-card-button');
+  const answer=card.querySelector('.faq-card-answer');
+  const hint=card.querySelector('.faq-card-hint');
+  answer.setAttribute('role','button');
+  answer.setAttribute('aria-label',answer.textContent+' (눌러서 닫기)');
+  answer.tabIndex=0;
+  answer.hidden=false;answer.inert=true;
+  function setOpen(open){
+   button.setAttribute('aria-expanded',String(open));
+   card.classList.toggle('is-open',open);
+   answer.inert=!open;button.inert=open;
+   hint.setAttribute('aria-hidden',String(open));
+   (open?answer:button).focus({preventScroll:true});
+  }
+  // The first tap on a peeking card only brings that card into view.
+  card.addEventListener('click',event=>{
+   update();
+   if(index!==active){event.preventDefault();event.stopPropagation();go(index);return;}
+   if(event.target.closest('a'))return;
+   if(event.target.closest('.faq-card-answer'))setOpen(false);
+   else if(event.target.closest('.faq-card-button'))setOpen(true);
+  });
+  answer.addEventListener('keydown',event=>{
+   if(event.target!==answer)return;
+   if(event.key==='Enter'||event.key===' '){event.preventDefault();answer.click();}
+  });
+ });
+ // Mouse dragging complements native touch swiping and trackpad scrolling.
+ let drag=null,suppressClick=false,clickTimer;
+ carousel.addEventListener('pointerdown',event=>{
+  if(event.pointerType!=='mouse'||event.button!==0)return;
+  update();suppressClick=false;clearTimeout(clickTimer);
+  drag={id:event.pointerId,x:event.clientX,y:event.clientY,left:carousel.scrollLeft,index:active,moved:false};
+ });
+ carousel.addEventListener('pointermove',event=>{
+  if(!drag||event.pointerId!==drag.id)return;
+  const dx=event.clientX-drag.x,dy=event.clientY-drag.y;
+  if(!drag.moved){
+   if(Math.abs(dx)<6||Math.abs(dx)<Math.abs(dy))return;
+   drag.moved=true;carousel.setPointerCapture(event.pointerId);carousel.classList.add('is-dragging');
+  }
+  event.preventDefault();carousel.scrollLeft=drag.left-dx;
+ });
+ function endDrag(event){
+  if(!drag||event.pointerId!==drag.id)return;
+  const previous=drag;drag=null;
+  carousel.classList.remove('is-dragging');
+  if(carousel.hasPointerCapture(event.pointerId))carousel.releasePointerCapture(event.pointerId);
+  if(!previous.moved)return;
+  suppressClick=true;clickTimer=setTimeout(()=>{suppressClick=false;},350);
+  const dx=event.clientX-previous.x;update();
+  go(event.type==='pointercancel'?active:Math.abs(dx)>35?previous.index+(dx<0?1:-1):active);
+ }
+ carousel.addEventListener('pointerup',endDrag);
+ carousel.addEventListener('pointercancel',endDrag);
+ carousel.addEventListener('pointerleave',event=>{if(drag&&!drag.moved)drag=null;});
+ carousel.addEventListener('click',event=>{if(suppressClick){event.preventDefault();event.stopImmediatePropagation();suppressClick=false;}},true);
+ window.addEventListener('resize',update);update();
+})();
 
 let letterTypingTimer;
 let letterOpening=false;
@@ -233,11 +328,18 @@ byId('letter-dialog').addEventListener('close',cancelLetterAnimation);
 (()=>{
  const motion=matchMedia('(prefers-reduced-motion: reduce)');
  if(motion.matches||!('IntersectionObserver' in window))return;
- const targets=[...document.querySelectorAll('main > .panel:not(.inset), .studio-stack > img, .studio-more, main > .inset > *, .faq-eyebrow, #faq-title, .faq-intro, .faq-item, .faq-sign')];
+ const targets=[...document.querySelectorAll('main > .panel:not(.inset):not(.invitation-panel), .invitation-line, .studio-stack > img, .studio-more, main > .inset > *, #faq-title, .faq-heart-mascot, .faq-intro, .faq-carousel, .faq-dots')];
  const cover=document.querySelector('main > section');
+ const invitation=document.querySelector('.invitation-panel');
+ let hasScrolled=false;
+ window.addEventListener('scroll',()=>{
+  if(document.documentElement.classList.contains('intro-playing')||window.scrollY<=0)return;
+  hasScrolled=true;
+  invitation.querySelectorAll('.is-pending').forEach(line=>{const rect=line.getBoundingClientRect();if(rect.top<innerHeight-35&&rect.bottom>0)reveal(line);});
+ },{passive:true});
  const observer=new IntersectionObserver(entries=>{
   entries.forEach(entry=>{
-   if(!entry.isIntersecting)return;
+   if(!entry.isIntersecting||(entry.target.closest('.invitation-panel')&&!hasScrolled))return;
    entry.target.classList.remove('is-pending');
    entry.target.classList.add('is-revealed');
    observer.unobserve(entry.target);
@@ -252,7 +354,7 @@ byId('letter-dialog').addEventListener('close',cancelLetterAnimation);
   if(element===cover)return;
   element.classList.add('scroll-reveal');
   const rect=element.getBoundingClientRect();
-  if(rect.top<innerHeight&&rect.bottom>0){element.classList.add('is-revealed');return;}
+  if(!element.closest('.invitation-panel')&&rect.top<innerHeight&&rect.bottom>0){element.classList.add('is-revealed');return;}
   element.classList.add('is-pending');
   observer.observe(element);
  });
@@ -295,3 +397,18 @@ codeDigits.forEach((input,index)=>{
 document.querySelector('.code-digits').addEventListener('focusout',event=>{
  if(!event.currentTarget.contains(event.relatedTarget))validateLetterField('guest-code');
 });
+
+// Draw the outline, then color the heart with back-and-forth strokes on entry.
+(()=>{
+ const panel=byId('calendar');
+ const heart=panel.querySelector('.calendar-heart-trigger');
+ if(!('IntersectionObserver' in window)||matchMedia('(prefers-reduced-motion: reduce)').matches){panel.classList.add('has-heart');return;}
+ const observer=new IntersectionObserver(entries=>{
+  if(!entries.some(entry=>entry.isIntersecting&&entry.intersectionRatio>=.6))return;
+  observer.disconnect();
+  setTimeout(()=>{
+   panel.classList.add('has-heart');
+  },300);
+ },{threshold:.6});
+ observer.observe(heart);
+})();
