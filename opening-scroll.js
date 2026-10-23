@@ -36,7 +36,6 @@
  }
  const lockIntro=window.scrollY===0&&!location.hash;
  if(lockIntro)root.classList.add('intro-playing');
- let playbackTimer;
  let releaseTimer;
  const release = () => {
   done = true;
@@ -79,8 +78,7 @@
   if (done || started) return;
   started = true;
   if (!image.naturalWidth) { release(); return; }
-  playbackTimer = setTimeout(startConfetti, 3000);
-  releaseTimer=setTimeout(release, 4300);
+  releaseTimer=setTimeout(()=>{startConfetti();release();},4300);
  };
  image.addEventListener('load', start, {once:true});
  image.addEventListener('error', release, {once:true});
@@ -89,7 +87,7 @@
  coverUrl.searchParams.set('play', Date.now().toString(36));
  image.src = coverUrl.href;
  if (image.complete && image.naturalWidth) start();
- motion.addEventListener('change', event => { if (event.matches) {clearTimeout(playbackTimer);release();}else startConfetti(); });
- window.addEventListener('pagehide',()=>{clearTimeout(playbackTimer);release();});
+ motion.addEventListener('change', event => { if (event.matches) release(); else if (done) startConfetti(); });
+ window.addEventListener('pagehide',release);
  window.addEventListener('pageshow',event=>{if(event.persisted)startConfetti();});
 })();
