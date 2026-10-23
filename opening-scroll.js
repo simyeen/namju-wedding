@@ -2,6 +2,7 @@
 (() => {
  const image = document.querySelector('.wedding-cover img');
  const root = document.documentElement;
+ if (/Android/i.test(navigator.userAgent)) root.classList.add('android-page-snap');
  const motion = matchMedia('(prefers-reduced-motion: reduce)');
  if (!image) return;
  const cue=document.createElement('button');
