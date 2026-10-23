@@ -88,10 +88,21 @@ document.querySelectorAll('.feature-dialog').forEach(dialog => {
 const calendarQuery = new URLSearchParams({action:'TEMPLATE',text:'남일과 주희의 결혼식',dates:'20270130T060000Z/20270130T080000Z',ctz:'Asia/Seoul',location:'그랜드힐 컨벤션 3층 그랜드볼룸 홀, 서울 강남구 역삼로 607',details:'남일과 주희의 결혼식에 초대합니다.'});
 const googleURL = 'https://calendar.google.com/calendar/render?' + calendarQuery;
 byId('google-calendar').href = googleURL;
-// Chrome delegates to the installed Google Calendar app; unresolved intents use the web URL.
+// Android browsers cannot reliably open the system calendar's INSERT activity.
+// Keep a direct HTTPS event editor and avoid silently falling back to a file download.
 if (/Android/i.test(navigator.userAgent)) {
-  byId('google-calendar').href = 'intent://calendar.google.com/calendar/render?' + calendarQuery + '#Intent;scheme=https;package=com.google.android.calendar;S.browser_fallback_url=' + encodeURIComponent(new URL('wedding.ics', location.href).href) + ';end';
-  byId('device-calendar').href = 'intent://com.android.calendar/events#Intent;scheme=content;action=android.intent.action.INSERT;type=vnd.android.cursor.dir/event;S.title=' + encodeURIComponent('남일과 주희의 결혼식') + ';S.eventLocation=' + encodeURIComponent('그랜드힐 컨벤션, 서울 강남구 역삼로 607') + ';l.beginTime=' + Date.UTC(2027,0,30,6) + ';l.endTime=' + Date.UTC(2027,0,30,8) + ';S.browser_fallback_url=' + encodeURIComponent(new URL('wedding.ics', location.href).href) + ';end';
+  byId('device-calendar').hidden = true;
+  document.querySelector('.calendar-actions').style.gridTemplateColumns = '1fr';
+  document.querySelector('.calendar-note').textContent =
+    '구글 캘린더에서 저장해 주세요. 같은 Google 계정을 삼성 캘린더에 동기화한 경우 그곳에도 표시됩니다.';
+} else if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+  byId('device-calendar').textContent = '아이폰 달력 파일';
+  document.querySelector('.calendar-note').textContent =
+    '구글 캘린더에서 저장하거나, 일정 파일을 열어 아이폰 달력에 추가해 주세요.';
+} else {
+  byId('device-calendar').textContent = '일정 파일 다운로드';
+  document.querySelector('.calendar-note').textContent =
+    '구글 캘린더에서 저장하거나, 일정 파일을 사용 중인 달력 앱으로 가져와 주세요.';
 }
 async function copyText(text) {
   if (navigator.clipboard && window.isSecureContext) {
@@ -162,7 +173,7 @@ byId('share').addEventListener('click', async () => {
        },
        buttons: [{
          title: '일정 등록',
-         link: { mobileWebUrl: shareUrl + 'wedding.ics', webUrl: shareUrl + 'wedding.ics' }
+         link: { mobileWebUrl: googleURL, webUrl: googleURL }
        }]
      });
      return;
