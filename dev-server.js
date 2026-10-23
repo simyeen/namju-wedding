@@ -29,4 +29,4 @@ http.createServer(async (req, res) => {
     res.setHeader('Content-Type', (types[path.extname(file)] || 'application/octet-stream') + '; charset=utf-8');
     fs.createReadStream(file).pipe(res);
   });
-}).listen(3000, '127.0.0.1', () => console.log('http://127.0.0.1:3000'));
+}).listen(3000, '0.0.0.0', () => console.log('Local dev server listening on port 3000'));
