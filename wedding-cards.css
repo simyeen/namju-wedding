@@ -1,3 +1,4 @@
+@font-face{font-family:"Gotham Book";src:url("assets/fonts/Gotham-Book.otf") format("opentype");font-style:normal;font-weight:400;font-display:swap}
 
 .invitation-panel{position:relative;background:#fffdf4;overflow:hidden}
 .invitation-paper{clip-path:inset(89% 0 0)}
@@ -7,13 +8,14 @@
 .wedding-faq #faq-title{font:italic 28px/1.2 'Caveat','Segoe Script',cursive;color:#792e3c;margin:0 0 52.5px}
 .faq-heart-mascot{width:116px;height:128px;object-fit:contain;margin:0 auto 22px;mix-blend-mode:multiply}
 .faq-intro{font:400 13px/1.8 Pretendard,sans-serif;color:#514640;margin:0 20px 34px}
-.faq-carousel{overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-inline:8.2%;scrollbar-width:none;overscroll-behavior-x:contain}
+.faq-carousel{overflow-x:auto;scroll-snap-type:none;scrollbar-width:none;overscroll-behavior-x:contain}
 .faq-carousel::-webkit-scrollbar{display:none}
 .faq-cards{display:flex;gap:12px;padding:0 8.2%;align-items:stretch}
+.faq-card:nth-child(6n){margin-right:28px}
 .faq-cards::after{content:'';flex:0 0 13%;}
 .faq-card{box-sizing:border-box;flex:0 0 80%;min-width:0;min-height:280px;padding:42px 20px 20px;background:#fff;border-radius:13px;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;font-family:Pretendard,sans-serif}
 .faq-card-number{font-size:14px;line-height:1;color:#782d3d;margin-bottom:18px}
-.faq-card h3{font-size:17px;line-height:1.5;font-weight:400;color:#392f2c;margin:0 0 14px;word-break:keep-all;overflow-wrap:anywhere}
+.faq-card h3{font-size:20px;line-height:1;font-weight:400;color:#392f2c;margin:0;word-break:keep-all;overflow-wrap:anywhere}
 .faq-card-hint{font-size:14px;line-height:1.5;color:#f17d89;margin:0 0 52.5px}
 .faq-card-button{margin:0;width:100%;min-height:44px;border:1px solid #782d3d;border-radius:10px;background:#fffdf9;color:#782d3d;font:400 12px/1.4 Pretendard,sans-serif;cursor:pointer}
 .faq-card-answer{margin:auto 0 0;width:100%;min-height:100px;box-sizing:border-box;padding:18px 12px;border-radius:12px;background:#faf2ed;color:#c62436;font-size:14px;line-height:1.45;word-break:keep-all;overflow-wrap:anywhere;animation:faq-answer-in .45s ease both}
@@ -29,27 +31,30 @@
 
 .faq-card{cursor:pointer}.faq-card-answer{cursor:pointer}.faq-card-answer:focus-visible{outline:2px solid #782d3d;outline-offset:3px}
 
-.faq-card-hint{display:flex;align-items:center;justify-content:center;gap:4px;font-family:Pretendard,sans-serif;font-weight:400;font-style:normal;font-size:16px;line-height:1;letter-spacing:0;text-align:center}
+.faq-card-hint{display:flex;align-items:center;justify-content:center;gap:4px;font-family:Pretendard,sans-serif;font-weight:400;font-style:normal;font-size:16px;line-height:1;letter-spacing:0;text-align:center;color:#e9808b;margin:0}
 .faq-hint-emoji{font-size:20px;line-height:1}
 
-/* 260 × 280 card; 220 × 192 content with 20 / 20 / 68 / 20 insets. */
+/* 260 × 280 card: 20px inset, 140px heading and 100px hint panel. */
 .faq-card{flex:0 0 260px;width:260px;height:280px;min-height:280px;padding:20px;box-sizing:border-box}
-.faq-card-content{flex:0 0 192px;width:220px;height:192px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:52.5px}
+.faq-card-content{flex:0 0 140px;width:220px;height:140px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0}
 .faq-card-content .faq-card-hint{margin:0;flex-shrink:0}
-.faq-card-button{height:48px;min-height:48px;flex:0 0 48px;width:220px}
+.faq-card-button{height:100px;min-height:100px;flex:0 0 100px;width:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:0 16px;border:0;border-radius:12px;background:#faf3ef;color:#782d3d;font:400 14px/1.6 Pretendard,sans-serif}
+.faq-card-prompt{display:block}
 .faq-cards::after{flex-basis:max(0px,calc(100% - 260px - 12px))}
 
-.faq-card-number{font-family:Gotham,Montserrat,Arial,sans-serif;font-weight:325;font-style:normal;font-size:16px;line-height:100%;letter-spacing:0;text-align:center;flex-shrink:0}
+.faq-card-number{font-family:"Gotham Book",Arial,sans-serif;font-weight:400;font-style:normal;font-size:16px;line-height:100%;letter-spacing:0;text-align:center;flex-shrink:0}
 
-/* Keep both states in the same geometry; only the hint and answer crossfade. */
+/* Switch card contents instantly without changing their geometry. */
 .faq-card{position:relative;cursor:grab}
-.faq-card .faq-card-answer{position:absolute;left:20px;bottom:20px;width:220px;height:100px;min-height:100px;margin:0;padding:14px 16px;display:flex;flex-direction:column;justify-content:center;overflow-y:auto;animation:none;opacity:0;visibility:hidden;transform:translateY(8px);pointer-events:none;transition:opacity .3s ease,transform .3s ease,visibility 0s .3s}
-.faq-card .faq-card-button,.faq-card .faq-card-hint{opacity:1;visibility:visible;transition:opacity .3s ease,visibility 0s}
-.faq-card.is-open .faq-card-answer{opacity:1;visibility:visible;transform:translateY(0);pointer-events:auto;transition-delay:0s}
-.faq-card.is-open .faq-card-button,.faq-card.is-open .faq-card-hint{opacity:0;visibility:hidden;pointer-events:none;transition-delay:0s,.3s}
+.faq-card .faq-card-answer{position:absolute;left:20px;bottom:20px;width:220px;height:100px;min-height:100px;margin:0;padding:14px 16px;display:flex;flex-direction:column;justify-content:center;overflow-y:auto;animation:none;opacity:0;visibility:hidden;transform:none;pointer-events:none;transition:none}
+.faq-card .faq-card-button,.faq-card .faq-card-hint{opacity:1;visibility:visible;transition:none}
+.faq-card .faq-card-hint{transition:none}
+.faq-card.is-open .faq-card-answer{opacity:1;visibility:visible;transform:translateY(0);pointer-events:auto;transition:none}
+.faq-card.is-open .faq-card-button,.faq-card.is-open .faq-card-hint{opacity:0;visibility:hidden;pointer-events:none;transition:none}
 .faq-carousel.is-dragging,.faq-carousel.is-animating{scroll-snap-type:none;scroll-behavior:auto}
 .faq-carousel.is-dragging{cursor:grabbing;user-select:none}
 .faq-carousel.is-dragging *{cursor:grabbing!important;user-select:none}
 @media(prefers-reduced-motion:reduce){.faq-card .faq-card-answer,.faq-card .faq-card-button,.faq-card .faq-card-hint{transition:none;transform:none}}
 
 .wedding-faq #faq-title{margin-bottom:20px}
+.wedding-faq #faq-title img{width:130px;max-width:calc(100% - 40px);height:21.04px;object-fit:contain;margin:0 auto}

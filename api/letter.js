@@ -37,7 +37,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const response = await fetch(SHEET_CSV_URL, { signal: AbortSignal.timeout(8000), cache: 'no-store' });
+    const response = await fetch(SHEET_CSV_URL, { signal: AbortSignal.timeout(3000), cache: 'no-store' });
     if (!response.ok || !(response.headers.get('content-type') || '').includes('text/csv')) {
       throw new Error('Sheet unavailable');
     }

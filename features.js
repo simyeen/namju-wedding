@@ -1,7 +1,55 @@
 'use strict';
 const byId = id => document.getElementById(id);
+const dialogHistory=new Map();
+let dialogHistorySequence=0;
+function showWeddingDialog(dialog){
+ if(dialog.open)return;
+ dialog.showModal();
+ const token=Date.now()+'-'+(++dialogHistorySequence);
+ history.pushState({...history.state,weddingDialog:token},'');
+ dialogHistory.set(dialog,token);
+ dialog.addEventListener('close',()=>{
+  dialogHistory.delete(dialog);
+  // X / Escape should also remove the extra history step.
+  if(history.state?.weddingDialog===token)history.back();
+ },{once:true});
+}
+window.addEventListener('popstate',()=>{
+ for(const [dialog,token] of dialogHistory){
+  if(dialog.open&&history.state?.weddingDialog!==token)dialog.close();
+ }
+});
+// Create the browsing context before navigating to a map universal link.
+document.addEventListener('click',event=>{
+ const link=event.target.closest('a[href]');
+ if(!link||event.defaultPrevented)return;
+ const url=new URL(link.href,location.href);
+ if(!['map.kakao.com','map.naver.com'].includes(url.hostname))return;
+ event.preventDefault();
+ if(/KAKAOTALK/i.test(navigator.userAgent)){
+  // Request Kakao's external-browser handler; never fall back to replacing this page.
+  window.location.href='kakaotalk://web/openExternal?url='+encodeURIComponent(url.href);
+  return;
+ }
+ const mapWindow=window.open('about:blank','_blank');
+ if(!mapWindow){
+  showCopyToast('새 창이 차단되었어요. 팝업을 허용한 뒤 다시 눌러주세요.');
+  return;
+ }
+ try{
+  mapWindow.opener=null;
+  mapWindow.location.replace(url.href);
+ }catch(_){
+  mapWindow.close();
+  showCopyToast('지도를 열지 못했어요. 브라우저에서 다시 시도해 주세요.');
+ }
+});
 document.querySelectorAll('[data-open]').forEach(button => button.addEventListener('click', async () => {
   const dialog = byId(button.dataset.open);
+  if(dialog.id === 'calendar-dialog'){
+    dialog.tabIndex=-1;
+    dialog.focus({preventScroll:true});
+  }
   if(dialog.id === 'letter-dialog'){
     cancelLetterAnimation();
     dialog.classList.remove('is-reading');
@@ -24,7 +72,11 @@ document.querySelectorAll('[data-open]').forEach(button => button.addEventListen
     panel.classList.remove('is-bursting');
     button.disabled=false;
   }
-  dialog.showModal();
+  showWeddingDialog(dialog);
+  if(dialog.id === 'letter-dialog'){
+    dialog.tabIndex=-1;
+    dialog.focus({preventScroll:true});
+  }
   dialog.scrollTop=0;
   document.body.classList.add('gallery-open');
   dialog.addEventListener('close', () => {document.body.classList.remove('gallery-open');button.focus();}, {once:true});
@@ -53,8 +105,9 @@ function manualCopy(text, host) {
 }
 let copyToastTimer;
 let copyToastClearTimer;
-function showCopyToast(message) {
+function showCopyToast(message,duration=1000) {
  const toast = byId('copy-toast');
+ (document.querySelector('dialog[open]')||document.body).append(toast);
  clearTimeout(copyToastTimer);
  clearTimeout(copyToastClearTimer);
  toast.textContent = message;
@@ -62,7 +115,7 @@ function showCopyToast(message) {
  copyToastTimer = setTimeout(() => {
    toast.classList.remove('is-visible');
    copyToastClearTimer = setTimeout(() => { toast.textContent = ''; }, 300);
- }, 1000);
+ }, duration);
 }
 document.querySelectorAll('[data-copy]').forEach(button => {
  const label = document.createElement('span');
@@ -93,16 +146,39 @@ document.querySelectorAll('[data-copy]').forEach(button => {
  });
 });
 byId('share').addEventListener('click', async () => {
- const url = new URL(location.href); url.hash = '';
+ const shareUrl = 'https://namju-wedding.vercel.app/';
+ if (window.Kakao) {
+   try {
+     if (!Kakao.isInitialized()) Kakao.init('dc60b45fa86c8e52871166a16861b501');
+     Kakao.Share.sendDefault({
+       objectType: 'feed',
+       content: {
+         title: '김남일 ♥ 이주희 결혼합니다.',
+         description: '2027년 1월 30일 토요일 오후 3시',
+         imageUrl: shareUrl + 'assets/studio-2.png',
+         imageWidth: 282,
+         imageHeight: 411,
+         link: { mobileWebUrl: shareUrl, webUrl: shareUrl }
+       },
+       buttons: [{
+         title: '일정 등록',
+         link: { mobileWebUrl: shareUrl + 'wedding.ics', webUrl: shareUrl + 'wedding.ics' }
+       }]
+     });
+     return;
+   } catch (error) {
+     console.error('카카오톡 공유를 열지 못했습니다.', error);
+   }
+ }
  if (navigator.share && window.isSecureContext) {
    try {
-     await navigator.share({title:document.title,text:'남일과 주희의 결혼식에 초대합니다.',url:url.href});
+     await navigator.share({title:document.title,text:'남일과 주희의 결혼식에 초대합니다.',url:shareUrl});
      return;
    } catch (error) {
      if (error.name === 'AbortError') return;
    }
  }
- const copied = await copyText(url.href);
+ const copied = await copyText(shareUrl);
  showCopyToast(copied ? 'URL을 복사했어요' : 'URL을 복사하지 못했어요. 주소창에서 복사해 주세요.');
 });
 function validateLetterField(id){
@@ -165,11 +241,15 @@ byId('letter-form').addEventListener('submit',async event=>{
  letterOpening=true;
  const submitButton=byId('letter-form').querySelector('[type="submit"]');
  submitButton.disabled=true;
- byId('letter-status').textContent='편지를 찾고 있어요…';
+ submitButton.classList.add('is-loading');
+ submitButton.setAttribute('aria-label','편지를 찾고 있어요');
+ byId('letter-status').textContent='';
  let letter=findLetter(code);
  let author='남일 & 주희';
+ const lookupController=new AbortController();
+ const lookupTimeout=setTimeout(()=>lookupController.abort(),3000);
  try {
-  const response=await fetch('/api/letter',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,code})});
+  const response=await fetch('/api/letter',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,code}),signal:lookupController.signal});
   if(response.status!==404){
    if(!response.ok)throw new Error('lookup failed');
    const data=await response.json();
@@ -178,13 +258,19 @@ byId('letter-form').addEventListener('submit',async event=>{
   }
  } catch (_) {
   if(openingVersion===letterOpeningVersion&&byId('letter-dialog').open){
-   byId('letter-status').textContent='편지를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.';
+   showCopyToast('편지를 불러오지 못했어요. 다시 시도해 주세요.',3000);
    letterOpening=false;
   }
   submitButton.disabled=false;
+  submitButton.classList.remove('is-loading');
+  submitButton.removeAttribute('aria-label');
   return;
+ } finally {
+  clearTimeout(lookupTimeout);
  }
  submitButton.disabled=false;
+ submitButton.classList.remove('is-loading');
+ submitButton.removeAttribute('aria-label');
  if(openingVersion!==letterOpeningVersion||!byId('letter-dialog').open)return;
  byId('letter-status').textContent='';
  byId('letter-theme').textContent=letter[0];
@@ -232,54 +318,84 @@ const mapScript=document.createElement('script');mapScript.src='https://oapi.map
 // Swipe, keyboard arrows and pagination share the same active card.
 (()=>{
  const carousel=document.querySelector('.faq-carousel');
- const cards=[...document.querySelectorAll('.faq-card')];
+ const track=carousel.querySelector('.faq-cards');
+ const originals=[...track.querySelectorAll('.faq-card')];
+ for(let group=1;group<=2;group++)originals.forEach(card=>{
+  const copy=card.cloneNode(true);
+  const answer=copy.querySelector('.faq-card-answer');
+  answer.id+='-loop-'+group;
+  copy.querySelector('.faq-card-button').setAttribute('aria-controls',answer.id);
+  track.append(copy);
+ });
+ const cards=[...track.querySelectorAll('.faq-card')];
+ const count=originals.length;
  const dots=[...document.querySelectorAll('.faq-dot')];
- let active=0,frame=0,slideFrame=0,autoTimer=0,autoVisible=false,autoHovered=false,autoDirection=1;
+ let active=0,frame=0,slideFrame=0,autoVisible=false,drag=null,touching=false,suppressClick=false,clickTimer;
+ let lastFrame=performance.now(),flowPosition=0,hoveringCard=false,pauseUntil=0;
  const motion=matchMedia('(prefers-reduced-motion: reduce)');
- function scheduleAuto(){
-  clearTimeout(autoTimer);
-  if(motion.matches||!autoVisible||autoHovered||carousel.matches(':focus-within')||cards.some(card=>card.classList.contains('is-open')))return;
-  autoTimer=setTimeout(()=>{
-   update();
-   if(active===cards.length-1)autoDirection=-1;
-   if(active===0)autoDirection=1;
-   go(active+autoDirection);
-   scheduleAuto();
-  },3600);
+ const cycleWidth=()=>cards[count].offsetLeft-cards[0].offsetLeft;
+ function normalize(){
+  const width=cycleWidth();
+  if(!width)return;
+  if(carousel.scrollLeft<width)carousel.scrollLeft+=width;
+  else if(carousel.scrollLeft>=width*2)carousel.scrollLeft-=width;
  }
+ function flow(now){
+  const elapsed=Math.min((now-lastFrame)/1000,.05);
+  lastFrame=now;
+  if(autoVisible&&!document.hidden&&!motion.matches&&!drag&&!touching&&!hoveringCard&&now>=pauseUntil&&
+     !carousel.classList.contains('is-animating')&&!cards.some(card=>card.classList.contains('is-open'))){
+   // Keep fractional progress outside scrollLeft: some browsers round it to pixels.
+   const width=cycleWidth();
+   if(width){
+    if(Math.abs(carousel.scrollLeft-flowPosition)>1)flowPosition=carousel.scrollLeft;
+    flowPosition=width+((flowPosition-width+22*elapsed)%width+width)%width;
+    carousel.scrollLeft=flowPosition;
+   }
+  }else flowPosition=carousel.scrollLeft;
+  requestAnimationFrame(flow);
+ }
+ requestAnimationFrame(flow);
  function update(){
   const left=carousel.getBoundingClientRect().left+carousel.clientWidth*.082;
-  active=cards.reduce((best,card,i)=>Math.abs(card.getBoundingClientRect().left-left)<Math.abs(cards[best].getBoundingClientRect().left-left)?i:best,0);
+  active=cards.reduce((best,card,i)=>Math.abs(card.getBoundingClientRect().left-left)<Math.abs(cards[best].getBoundingClientRect().left-left)?i:best,0)%count;
   dots.forEach((dot,i)=>{dot.classList.toggle('is-active',i===active);dot.setAttribute('aria-current',String(i===active));});
  }
- function go(index){
-  const card=cards[Math.max(0,Math.min(cards.length-1,index))];
-  const target=carousel.scrollLeft+card.getBoundingClientRect().left-carousel.getBoundingClientRect().left-carousel.clientWidth*.082;
+ function go(index,direction=0){
+  const logical=(index+count)%count;
+  if(logical===active)return;
+  const width=cycleWidth();
+  const card=cards[count+logical];
+  const base=carousel.scrollLeft+card.getBoundingClientRect().left-carousel.getBoundingClientRect().left-carousel.clientWidth*.082;
+  const candidates=[base-width,base,base+width].filter(value=>value>=0&&value<=carousel.scrollWidth-carousel.clientWidth);
+  let choices=candidates.filter(value=>direction===0||(direction>0?value<carousel.scrollLeft-1:value>carousel.scrollLeft+1));
+  if(!choices.length)choices=candidates;
+  let target=choices.reduce((best,value)=>Math.abs(value-carousel.scrollLeft)<Math.abs(best-carousel.scrollLeft)?value:best);
   cancelAnimationFrame(slideFrame);
-  if(motion.matches){carousel.scrollLeft=target;return;}
+  if(motion.matches){carousel.scrollLeft=Math.max(0,target);normalize();update();return;}
   const start=carousel.scrollLeft, distance=target-start, started=performance.now();
   carousel.classList.add('is-animating');
   const slide=now=>{
    const progress=Math.min((now-started)/600,1);
    carousel.scrollLeft=start+distance*(1-Math.pow(1-progress,3));
    if(progress<1)slideFrame=requestAnimationFrame(slide);
-   else{carousel.scrollLeft=target;carousel.classList.remove('is-animating');update();}
+   else{carousel.scrollLeft=target;carousel.classList.remove('is-animating');normalize();update();}
   };
   slideFrame=requestAnimationFrame(slide);
  }
- dots.forEach((dot,i)=>dot.addEventListener('click',()=>{go(i);scheduleAuto();}));
+ dots.forEach((dot,i)=>dot.addEventListener('click',()=>go(i)));
  if('IntersectionObserver' in window)new IntersectionObserver(entries=>{
-  autoVisible=entries[0].isIntersecting;scheduleAuto();
- },{threshold:.35}).observe(carousel);
- carousel.addEventListener('pointerenter',event=>{if(event.pointerType==='mouse'){autoHovered=true;scheduleAuto();}});
- carousel.addEventListener('pointerleave',event=>{if(event.pointerType==='mouse'){autoHovered=false;scheduleAuto();}});
- carousel.addEventListener('focusin',scheduleAuto);
- carousel.addEventListener('focusout',()=>setTimeout(scheduleAuto,0));
- carousel.addEventListener('touchstart',()=>clearTimeout(autoTimer),{passive:true});
- carousel.addEventListener('touchend',scheduleAuto,{passive:true});
- carousel.addEventListener('scroll',()=>{if(!frame)frame=requestAnimationFrame(()=>{frame=0;update();});},{passive:true});
- carousel.addEventListener('keydown',event=>{if(event.key==='ArrowRight'||event.key==='ArrowLeft'){event.preventDefault();go(active+(event.key==='ArrowRight'?1:-1));scheduleAuto();}});
+  autoVisible=entries[0].isIntersecting;
+ },{threshold:.1}).observe(carousel);
+ carousel.addEventListener('touchstart',()=>{touching=true;},{passive:true});
+ const endTouch=()=>{touching=false;pauseUntil=performance.now()+500;normalize();};
+ carousel.addEventListener('touchend',endTouch,{passive:true});
+ carousel.addEventListener('touchcancel',endTouch,{passive:true});
+ carousel.addEventListener('scroll',()=>{if(!frame)frame=requestAnimationFrame(()=>{frame=0;if(!drag&&!touching&&!carousel.classList.contains('is-animating'))normalize();update();});},{passive:true});
+ carousel.addEventListener('keydown',event=>{if(event.key==='ArrowRight'||event.key==='ArrowLeft'){event.preventDefault();go(active+(event.key==='ArrowRight'?1:-1),event.key==='ArrowRight'?-1:1);}});
  cards.forEach((card,index)=>{
+  card.addEventListener('pointerenter',event=>{if(event.pointerType==='mouse')hoveringCard=true;});
+  card.addEventListener('pointerleave',event=>{if(event.pointerType==='mouse')hoveringCard=false;});
   const button=card.querySelector('.faq-card-button');
   const answer=card.querySelector('.faq-card-answer');
   const hint=card.querySelector('.faq-card-hint');
@@ -293,12 +409,12 @@ const mapScript=document.createElement('script');mapScript.src='https://oapi.map
    answer.inert=!open;button.inert=open;
    hint.setAttribute('aria-hidden',String(open));
    (open?answer:button).focus({preventScroll:true});
-   scheduleAuto();
   }
   // The first tap on a peeking card only brings that card into view.
   card.addEventListener('click',event=>{
+   pauseUntil=performance.now()+500;
    update();
-   if(index!==active){event.preventDefault();event.stopPropagation();go(index);scheduleAuto();return;}
+   if(index%count!==active){event.preventDefault();event.stopPropagation();go(index%count,card.getBoundingClientRect().left<carousel.getBoundingClientRect().left+carousel.clientWidth*.082?1:-1);return;}
    if(event.target.closest('a'))return;
    if(event.target.closest('.faq-card-answer'))setOpen(false);
    else if(event.target.closest('.faq-card-button'))setOpen(true);
@@ -309,9 +425,7 @@ const mapScript=document.createElement('script');mapScript.src='https://oapi.map
   });
  });
  // Mouse dragging complements native touch swiping and trackpad scrolling.
- let drag=null,suppressClick=false,clickTimer;
  carousel.addEventListener('pointerdown',event=>{
-  clearTimeout(autoTimer);
   cancelAnimationFrame(slideFrame);carousel.classList.remove('is-animating');
   if(event.pointerType!=='mouse'||event.button!==0)return;
   update();suppressClick=false;clearTimeout(clickTimer);
@@ -333,16 +447,14 @@ const mapScript=document.createElement('script');mapScript.src='https://oapi.map
   if(carousel.hasPointerCapture(event.pointerId))carousel.releasePointerCapture(event.pointerId);
   if(!previous.moved)return;
   suppressClick=true;clickTimer=setTimeout(()=>{suppressClick=false;},350);
-  const dx=event.clientX-previous.x;update();
-  go(event.type==='pointercancel'?active:Math.abs(dx)>35?previous.index+(dx<0?1:-1):active);
+  normalize();update();
  }
  carousel.addEventListener('pointerup',endDrag);
  carousel.addEventListener('pointercancel',endDrag);
- carousel.addEventListener('pointerup',scheduleAuto);
- carousel.addEventListener('pointercancel',scheduleAuto);
  carousel.addEventListener('pointerleave',event=>{if(drag&&!drag.moved)drag=null;});
  carousel.addEventListener('click',event=>{if(suppressClick){event.preventDefault();event.stopImmediatePropagation();suppressClick=false;}},true);
- window.addEventListener('resize',update);motion.addEventListener('change',scheduleAuto);update();
+ window.addEventListener('resize',()=>{normalize();update();});
+ carousel.scrollLeft=cycleWidth();flowPosition=carousel.scrollLeft;update();
 })();
 
 let letterTypingTimer;
@@ -385,7 +497,7 @@ byId('letter-dialog').addEventListener('close',cancelLetterAnimation);
 (()=>{
  const motion=matchMedia('(prefers-reduced-motion: reduce)');
  if(motion.matches||!('IntersectionObserver' in window))return;
- const targets=[...document.querySelectorAll('main > .panel:not(.inset):not(.invitation-panel), .invitation-line, .studio-more, main > .inset > *, #faq-title, .faq-heart-mascot, .faq-intro, .faq-carousel, .faq-dots')];
+ const targets=[...document.querySelectorAll('main > .panel:not(.inset):not(.invitation-panel), .invitation-line, .studio-stack img, .studio-more, main > .inset > *, #faq-title, .faq-heart-mascot, .faq-intro, .faq-carousel, .faq-dots')];
  const cover=document.querySelector('main > section');
  const invitation=document.querySelector('.invitation-panel');
  let hasScrolled=false;
@@ -397,6 +509,12 @@ byId('letter-dialog').addEventListener('close',cancelLetterAnimation);
  const observer=new IntersectionObserver(entries=>{
   entries.forEach(entry=>{
    if(!entry.isIntersecting||(entry.target.closest('.invitation-panel')&&!hasScrolled))return;
+   if(entry.target.matches('.studio-stack img')&&!entry.target.complete){
+    entry.target.addEventListener('load',()=>reveal(entry.target),{once:true});
+    entry.target.addEventListener('error',()=>reveal(entry.target),{once:true});
+    observer.unobserve(entry.target);
+    return;
+   }
    entry.target.classList.remove('is-pending');
    entry.target.classList.add('is-revealed');
    observer.unobserve(entry.target);
