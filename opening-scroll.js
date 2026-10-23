@@ -18,14 +18,14 @@
  // Never leave the page locked if the image fails or its load event is lost.
  const safetyTimer = setTimeout(release, 12000);
  const startConfetti = () => {
-  if (motion.matches || image.parentElement.querySelector('.cover-confetti')) return;
+  if (motion.matches || document.querySelector('.cover-confetti')) return;
   const layer = document.createElement('div');
   layer.className = 'cover-confetti';
   layer.setAttribute('aria-hidden', 'true');
-  image.parentElement.append(layer);
-  const resize = () => layer.style.setProperty('--fall-height', `${image.clientHeight + 50}px`);
+  document.body.append(layer);
+  const resize = () => layer.style.setProperty('--fall-height', `${window.innerHeight + 50}px`);
   resize();
-  if ('ResizeObserver' in window) new ResizeObserver(resize).observe(image);
+  window.addEventListener('resize', resize);
   for (let i = 0; i < 32; i++) {
    const paper = document.createElement('i');
    paper.style.setProperty('--x', `${(i * 37 + 7) % 98}%`);
@@ -34,9 +34,6 @@
    paper.style.setProperty('--drift', `${(i % 5 - 2) * 12}px`);
    layer.append(paper);
   }
-  if ('IntersectionObserver' in window) new IntersectionObserver(entries => {
-   layer.classList.toggle('is-paused', !entries[0].isIntersecting);
-  }).observe(image);
  };
  const start = () => {
   if (done) return;

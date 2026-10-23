@@ -234,8 +234,19 @@ const mapScript=document.createElement('script');mapScript.src='https://oapi.map
  const carousel=document.querySelector('.faq-carousel');
  const cards=[...document.querySelectorAll('.faq-card')];
  const dots=[...document.querySelectorAll('.faq-dot')];
- let active=0,frame=0;
+ let active=0,frame=0,slideFrame=0,autoTimer=0,autoVisible=false,autoHovered=false,autoDirection=1;
  const motion=matchMedia('(prefers-reduced-motion: reduce)');
+ function scheduleAuto(){
+  clearTimeout(autoTimer);
+  if(motion.matches||!autoVisible||autoHovered||carousel.matches(':focus-within')||cards.some(card=>card.classList.contains('is-open')))return;
+  autoTimer=setTimeout(()=>{
+   update();
+   if(active===cards.length-1)autoDirection=-1;
+   if(active===0)autoDirection=1;
+   go(active+autoDirection);
+   scheduleAuto();
+  },3600);
+ }
  function update(){
   const left=carousel.getBoundingClientRect().left+carousel.clientWidth*.082;
   active=cards.reduce((best,card,i)=>Math.abs(card.getBoundingClientRect().left-left)<Math.abs(cards[best].getBoundingClientRect().left-left)?i:best,0);
@@ -243,11 +254,31 @@ const mapScript=document.createElement('script');mapScript.src='https://oapi.map
  }
  function go(index){
   const card=cards[Math.max(0,Math.min(cards.length-1,index))];
-  carousel.scrollTo({left:carousel.scrollLeft+card.getBoundingClientRect().left-carousel.getBoundingClientRect().left-carousel.clientWidth*.082,behavior:motion.matches?'instant':'smooth'});
+  const target=carousel.scrollLeft+card.getBoundingClientRect().left-carousel.getBoundingClientRect().left-carousel.clientWidth*.082;
+  cancelAnimationFrame(slideFrame);
+  if(motion.matches){carousel.scrollLeft=target;return;}
+  const start=carousel.scrollLeft, distance=target-start, started=performance.now();
+  carousel.classList.add('is-animating');
+  const slide=now=>{
+   const progress=Math.min((now-started)/600,1);
+   carousel.scrollLeft=start+distance*(1-Math.pow(1-progress,3));
+   if(progress<1)slideFrame=requestAnimationFrame(slide);
+   else{carousel.scrollLeft=target;carousel.classList.remove('is-animating');update();}
+  };
+  slideFrame=requestAnimationFrame(slide);
  }
- dots.forEach((dot,i)=>dot.addEventListener('click',()=>go(i)));
+ dots.forEach((dot,i)=>dot.addEventListener('click',()=>{go(i);scheduleAuto();}));
+ if('IntersectionObserver' in window)new IntersectionObserver(entries=>{
+  autoVisible=entries[0].isIntersecting;scheduleAuto();
+ },{threshold:.35}).observe(carousel);
+ carousel.addEventListener('pointerenter',event=>{if(event.pointerType==='mouse'){autoHovered=true;scheduleAuto();}});
+ carousel.addEventListener('pointerleave',event=>{if(event.pointerType==='mouse'){autoHovered=false;scheduleAuto();}});
+ carousel.addEventListener('focusin',scheduleAuto);
+ carousel.addEventListener('focusout',()=>setTimeout(scheduleAuto,0));
+ carousel.addEventListener('touchstart',()=>clearTimeout(autoTimer),{passive:true});
+ carousel.addEventListener('touchend',scheduleAuto,{passive:true});
  carousel.addEventListener('scroll',()=>{if(!frame)frame=requestAnimationFrame(()=>{frame=0;update();});},{passive:true});
- carousel.addEventListener('keydown',event=>{if(event.key==='ArrowRight'||event.key==='ArrowLeft'){event.preventDefault();go(active+(event.key==='ArrowRight'?1:-1));}});
+ carousel.addEventListener('keydown',event=>{if(event.key==='ArrowRight'||event.key==='ArrowLeft'){event.preventDefault();go(active+(event.key==='ArrowRight'?1:-1));scheduleAuto();}});
  cards.forEach((card,index)=>{
   const button=card.querySelector('.faq-card-button');
   const answer=card.querySelector('.faq-card-answer');
@@ -262,11 +293,12 @@ const mapScript=document.createElement('script');mapScript.src='https://oapi.map
    answer.inert=!open;button.inert=open;
    hint.setAttribute('aria-hidden',String(open));
    (open?answer:button).focus({preventScroll:true});
+   scheduleAuto();
   }
   // The first tap on a peeking card only brings that card into view.
   card.addEventListener('click',event=>{
    update();
-   if(index!==active){event.preventDefault();event.stopPropagation();go(index);return;}
+   if(index!==active){event.preventDefault();event.stopPropagation();go(index);scheduleAuto();return;}
    if(event.target.closest('a'))return;
    if(event.target.closest('.faq-card-answer'))setOpen(false);
    else if(event.target.closest('.faq-card-button'))setOpen(true);
@@ -279,6 +311,8 @@ const mapScript=document.createElement('script');mapScript.src='https://oapi.map
  // Mouse dragging complements native touch swiping and trackpad scrolling.
  let drag=null,suppressClick=false,clickTimer;
  carousel.addEventListener('pointerdown',event=>{
+  clearTimeout(autoTimer);
+  cancelAnimationFrame(slideFrame);carousel.classList.remove('is-animating');
   if(event.pointerType!=='mouse'||event.button!==0)return;
   update();suppressClick=false;clearTimeout(clickTimer);
   drag={id:event.pointerId,x:event.clientX,y:event.clientY,left:carousel.scrollLeft,index:active,moved:false};
@@ -304,9 +338,11 @@ const mapScript=document.createElement('script');mapScript.src='https://oapi.map
  }
  carousel.addEventListener('pointerup',endDrag);
  carousel.addEventListener('pointercancel',endDrag);
+ carousel.addEventListener('pointerup',scheduleAuto);
+ carousel.addEventListener('pointercancel',scheduleAuto);
  carousel.addEventListener('pointerleave',event=>{if(drag&&!drag.moved)drag=null;});
  carousel.addEventListener('click',event=>{if(suppressClick){event.preventDefault();event.stopImmediatePropagation();suppressClick=false;}},true);
- window.addEventListener('resize',update);update();
+ window.addEventListener('resize',update);motion.addEventListener('change',scheduleAuto);update();
 })();
 
 let letterTypingTimer;
@@ -349,7 +385,7 @@ byId('letter-dialog').addEventListener('close',cancelLetterAnimation);
 (()=>{
  const motion=matchMedia('(prefers-reduced-motion: reduce)');
  if(motion.matches||!('IntersectionObserver' in window))return;
- const targets=[...document.querySelectorAll('main > .panel:not(.inset):not(.invitation-panel), .invitation-line, .studio-stack > img, .studio-more, main > .inset > *, #faq-title, .faq-heart-mascot, .faq-intro, .faq-carousel, .faq-dots')];
+ const targets=[...document.querySelectorAll('main > .panel:not(.inset):not(.invitation-panel), .invitation-line, .studio-more, main > .inset > *, #faq-title, .faq-heart-mascot, .faq-intro, .faq-carousel, .faq-dots')];
  const cover=document.querySelector('main > section');
  const invitation=document.querySelector('.invitation-panel');
  let hasScrolled=false;

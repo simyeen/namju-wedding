@@ -29,10 +29,6 @@
 
 .faq-card{cursor:pointer}.faq-card-answer{cursor:pointer}.faq-card-answer:focus-visible{outline:2px solid #782d3d;outline-offset:3px}
 
-/* Preserve the photo privacy blur without overriding scroll reveal transitions. */
-.studio-stack img.scroll-reveal{transition:opacity 1.2s ease,transform 1.2s cubic-bezier(.22,1,.36,1),filter .18s ease}
-@media(prefers-reduced-motion:reduce){.studio-stack img.scroll-reveal{transition:none}}
-
 .faq-card-hint{display:flex;align-items:center;justify-content:center;gap:4px;font-family:Pretendard,sans-serif;font-weight:400;font-style:normal;font-size:16px;line-height:1;letter-spacing:0;text-align:center}
 .faq-hint-emoji{font-size:20px;line-height:1}
 
@@ -51,7 +47,8 @@
 .faq-card .faq-card-button,.faq-card .faq-card-hint{opacity:1;visibility:visible;transition:opacity .3s ease,visibility 0s}
 .faq-card.is-open .faq-card-answer{opacity:1;visibility:visible;transform:translateY(0);pointer-events:auto;transition-delay:0s}
 .faq-card.is-open .faq-card-button,.faq-card.is-open .faq-card-hint{opacity:0;visibility:hidden;pointer-events:none;transition-delay:0s,.3s}
-.faq-carousel.is-dragging{scroll-snap-type:none;scroll-behavior:auto;cursor:grabbing;user-select:none}
+.faq-carousel.is-dragging,.faq-carousel.is-animating{scroll-snap-type:none;scroll-behavior:auto}
+.faq-carousel.is-dragging{cursor:grabbing;user-select:none}
 .faq-carousel.is-dragging *{cursor:grabbing!important;user-select:none}
 @media(prefers-reduced-motion:reduce){.faq-card .faq-card-answer,.faq-card .faq-card-button,.faq-card .faq-card-hint{transition:none;transform:none}}
 

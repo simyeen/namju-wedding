@@ -1,14 +1,11 @@
 .wedding-cover{position:relative;overflow:hidden;isolation:isolate}
-.cover-confetti{position:absolute;inset:0;pointer-events:none;z-index:2;overflow:hidden;mix-blend-mode:multiply}
+.cover-confetti{position:fixed;inset:0;pointer-events:none;z-index:2;overflow:hidden;mix-blend-mode:multiply}
 .cover-confetti i{position:absolute;left:var(--x);top:-25px;width:18px;height:22px;opacity:0;animation:cover-paper-fall var(--duration) linear var(--delay) infinite}
 .cover-confetti i::before{content:"";display:block;width:18px;height:22px;background:url('assets/confetti-source.jpeg') -278px -23px/1200px 682px no-repeat;transform:scale(.65)}
 .cover-confetti i:nth-child(even)::before{background-position:-118px -46px}
 @keyframes cover-paper-fall{0%{opacity:0;transform:translate(0,-20px) rotate(0)}4%,90%{opacity:1}100%{opacity:0;transform:translate(var(--drift),var(--fall-height,800px)) rotate(400deg)}}
-.cover-confetti.is-paused i{animation-play-state:paused}
 .letter-panel{padding:95px 8.205% 64px;background:repeating-linear-gradient(90deg,#fffdf4 0 18px,#f8ede6 18px 24px);line-height:normal}
 .burgundy-envelope{width:72%;aspect-ratio:322/231;margin:20px auto 54px;background:url('assets/envelope-reference.png') 46.861% 44.444%/238.509% auto no-repeat}
 .letter-panel .letter-open{position:static;width:100%;height:50px;border-radius:13px;margin:0;font-size:15px}
-#letter-dialog .personal-letter-art{width:calc(100% + 24px);max-width:none;height:auto;margin:-10px -12px 24px;mix-blend-mode:multiply}
 #letter-dialog:not(.is-reading) .letter-envelope-motion{display:none}
-#letter-dialog.is-reading .personal-letter-art{display:none}
 @media(prefers-reduced-motion:reduce){.cover-confetti{display:none}}
