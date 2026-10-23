@@ -2,7 +2,6 @@
 (() => {
  const image = document.querySelector('.wedding-cover img');
  const root = document.documentElement;
- if (/Android/i.test(navigator.userAgent)) root.classList.add('android-page-snap');
  const motion = matchMedia('(prefers-reduced-motion: reduce)');
  if (!image) return;
  const cue=document.createElement('button');
@@ -31,11 +30,14 @@
  };
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',watchInvitationTitle,{once:true});
  else watchInvitationTitle();
+ const enablePageSnap = () => root.classList.add('touch-page-snap');
  if(motion.matches){
+  enablePageSnap();
   return;
  }
  const lockIntro=window.scrollY===0&&!location.hash;
  if(lockIntro)root.classList.add('intro-playing');
+ else enablePageSnap();
  let playbackTimer;
  let releaseTimer;
  const release = () => {
@@ -43,6 +45,7 @@
   clearTimeout(releaseTimer);
   clearTimeout(safetyTimer);
   root.classList.remove('intro-playing');
+  enablePageSnap();
   updateCue();
  };
  // Never leave the page locked if the image fails or its load event is lost.
