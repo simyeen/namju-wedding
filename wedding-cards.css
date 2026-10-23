@@ -7,7 +7,7 @@
 .wedding-faq{padding:58px 0 60px;background:#f8ebe5;line-height:1.6;text-align:center;overflow:hidden}
 .wedding-faq #faq-title{font:italic 28px/1.2 'Caveat','Segoe Script',cursive;color:#792e3c;margin:0 0 52.5px}
 .faq-heart-mascot{width:116px;height:128px;object-fit:contain;margin:0 auto 22px;mix-blend-mode:multiply}
-.faq-intro{font:400 13px/1.8 Pretendard,sans-serif;color:#514640;margin:0 20px 34px}
+.faq-intro{font:normal 400 14px/1.6 Pretendard,sans-serif;letter-spacing:0;text-align:center;color:#514640;margin:0 20px 34px}
 .faq-carousel{overflow-x:auto;scroll-snap-type:none;scrollbar-width:none;overscroll-behavior-x:contain}
 .faq-carousel::-webkit-scrollbar{display:none}
 .faq-cards{display:flex;gap:12px;padding:0 8.2%;align-items:stretch}
