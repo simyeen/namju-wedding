@@ -157,39 +157,16 @@ document.querySelectorAll('[data-copy]').forEach(button => {
  });
 });
 byId('share').addEventListener('click', async () => {
- const shareUrl = 'https://namju-wedding.vercel.app/';
- if (window.Kakao) {
-   try {
-     if (!Kakao.isInitialized()) Kakao.init('dc60b45fa86c8e52871166a16861b501');
-     Kakao.Share.sendDefault({
-       objectType: 'feed',
-       content: {
-         title: '김남일 ♥ 이주희 결혼합니다.',
-         description: '2027년 1월 30일 토요일 오후 3시',
-         imageUrl: shareUrl + 'assets/studio-2.png',
-         imageWidth: 282,
-         imageHeight: 411,
-         link: { mobileWebUrl: shareUrl, webUrl: shareUrl }
-       },
-       buttons: [{
-         title: '일정 등록',
-         link: { mobileWebUrl: googleURL, webUrl: googleURL }
-       }]
-     });
-     return;
-   } catch (error) {
-     console.error('카카오톡 공유를 열지 못했습니다.', error);
-   }
- }
+ const url = new URL(location.href); url.hash = '';
  if (navigator.share && window.isSecureContext) {
    try {
-     await navigator.share({title:document.title,text:'남일과 주희의 결혼식에 초대합니다.',url:shareUrl});
+     await navigator.share({title:document.title,text:'남일과 주희의 결혼식에 초대합니다.',url:url.href});
      return;
    } catch (error) {
      if (error.name === 'AbortError') return;
    }
  }
- const copied = await copyText(shareUrl);
+ const copied = await copyText(url.href);
  showCopyToast(copied ? 'URL을 복사했어요' : 'URL을 복사하지 못했어요. 주소창에서 복사해 주세요.');
 });
 function validateLetterField(id){
