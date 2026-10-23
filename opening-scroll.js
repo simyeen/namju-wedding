@@ -12,6 +12,7 @@
  image.parentElement.append(cue);
  cue.addEventListener('click',()=>document.querySelector('.invitation-panel')?.scrollIntoView({behavior:'smooth'}));
  let done = false;
+ let started = false;
  let invitationTitleShown=false;
  const updateCue=()=>cue.classList.toggle('is-visible',done&&!invitationTitleShown&&window.scrollY<40);
  window.addEventListener('scroll',updateCue,{passive:true});
@@ -79,14 +80,19 @@
   }
  };
  const start = () => {
-  if (done) return;
+  if (done || started) return;
+  started = true;
   if (!image.naturalWidth) { release(); return; }
   playbackTimer = setTimeout(startConfetti, 3000);
   releaseTimer=setTimeout(release, 4300);
  };
  image.addEventListener('load', start, {once:true});
  image.addEventListener('error', release, {once:true});
- if (image.complete) start();
+ // A unique URL gives every page load a fresh GIF decoder, including mobile reloads.
+ const coverUrl = new URL(image.dataset.src, document.baseURI);
+ coverUrl.searchParams.set('play', Date.now().toString(36));
+ image.src = coverUrl.href;
+ if (image.complete && image.naturalWidth) start();
  motion.addEventListener('change', event => { if (event.matches) {clearTimeout(playbackTimer);release();}else startConfetti(); });
  window.addEventListener('pagehide',()=>{clearTimeout(playbackTimer);release();});
  window.addEventListener('pageshow',event=>{if(event.persisted)startConfetti();});
