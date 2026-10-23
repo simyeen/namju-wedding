@@ -122,7 +122,6 @@ function validateLetterField(id){
   if(byId(id).hasAttribute('aria-invalid'))validateLetterField(id);
  });
 });
-const personalLetters = {"3010": ["너에게 드리는 편지", "ㅋㅋ"]};
 // 개인 편지가 없는 분들에게 보여 줄 기본 편지 5개입니다.
 const defaultLetters = [
   [
@@ -149,7 +148,6 @@ const defaultLetters = [
 // 기본 편지 순서: 0000–2000, 2001–4000, 4001–6000, 6001–8000, 8001–9999
 const defaultLetterRangeEnds = [2000,4000,6000,8000,9999];
 function findLetter(code){
-  if(Object.prototype.hasOwnProperty.call(personalLetters,code)) return personalLetters[code];
   const index=defaultLetterRangeEnds.findIndex(end=>Number(code)<=end);
   return defaultLetters[index];
 }
@@ -162,13 +160,36 @@ byId('letter-form').addEventListener('submit',async event=>{
  const nameValid=validateLetterField('guest-name');
  const codeValid=validateLetterField('guest-code');
  if(!nameValid||!codeValid){(!nameValid?byId('guest-name'):document.querySelector('.code-digit')).focus();return;}
- const letter=findLetter(code);
- byId('letter-status').textContent='';
  cancelLetterAnimation();
- byId('letter-theme').textContent=letter[0];
- byId('letter-body').textContent=letter[1];
  const openingVersion=letterOpeningVersion;
  letterOpening=true;
+ const submitButton=byId('letter-form').querySelector('[type="submit"]');
+ submitButton.disabled=true;
+ byId('letter-status').textContent='편지를 찾고 있어요…';
+ let letter=findLetter(code);
+ let author='남일 & 주희';
+ try {
+  const response=await fetch('/api/letter',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,code})});
+  if(response.status!==404){
+   if(!response.ok)throw new Error('lookup failed');
+   const data=await response.json();
+   letter=['',data.body];
+   author=data.author;
+  }
+ } catch (_) {
+  if(openingVersion===letterOpeningVersion&&byId('letter-dialog').open){
+   byId('letter-status').textContent='편지를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.';
+   letterOpening=false;
+  }
+  submitButton.disabled=false;
+  return;
+ }
+ submitButton.disabled=false;
+ if(openingVersion!==letterOpeningVersion||!byId('letter-dialog').open)return;
+ byId('letter-status').textContent='';
+ byId('letter-theme').textContent=letter[0];
+ byId('letter-body').textContent=letter[1];
+ byId('letter-content').lastElementChild.textContent='마음을 담아,\n'+author;
  const dialog=byId('letter-dialog');
  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
  const fadeOut=reduced?null:dialog.animate([{opacity:1},{opacity:0,transform:'translateY(-6px)'}],{duration:240,easing:'ease-in',fill:'forwards'});
