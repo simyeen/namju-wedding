@@ -1,4 +1,5 @@
-const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1fTTbeqIMFohHycCCozdFVuo2eehapvG5B60Kv7vkorM/export?format=csv&gid=0';
+const LETTER_SHEETS = [{ gid: 0, author: '주희' }, { gid: 1398877848, author: '남일' }];
+const sheetUrl = gid => `https://docs.google.com/spreadsheets/d/1fTTbeqIMFohHycCCozdFVuo2eehapvG5B60Kv7vkorM/export?format=csv&gid=${gid}`;
 
 function parseCsv(csv) {
   const rows = [];
@@ -37,24 +38,21 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const response = await fetch(SHEET_CSV_URL, { signal: AbortSignal.timeout(3000), cache: 'no-store' });
-    if (!response.ok || !(response.headers.get('content-type') || '').includes('text/csv')) {
-      throw new Error('Sheet unavailable');
-    }
-    const csv = await response.text();
-    if (csv.length > 2_000_000) throw new Error('Sheet too large');
-    const [headers, ...rows] = parseCsv(csv.replace(/^\uFEFF/, ''));
-    const columns = ['이름', '전화번호 4자리', '편지 내용', '글쓴이'].map(label => headers?.findIndex(value => value.trim() === label));
-    if (columns.some(index => index < 0)) throw new Error('Sheet columns changed');
-    const [nameColumn, codeColumn, bodyColumn, authorColumn] = columns;
-    const match = rows.find(row => normalizeName(row[nameColumn]) === normalizeName(name) &&
-      String(row[codeColumn] || '').trim() === code && String(row[bodyColumn] || '').trim());
-    if (!match) return res.status(404).json({ found: false });
-    return res.status(200).json({
-      found: true,
-      body: match[bodyColumn].trim(),
-      author: String(match[authorColumn] || '남일 & 주희').trim()
-    });
+    const results = await Promise.allSettled(LETTER_SHEETS.map(async sheet => {
+      const response = await fetch(sheetUrl(sheet.gid), { signal: AbortSignal.timeout(3000), cache: 'no-store' });
+      if (!response.ok || !(response.headers.get('content-type') || '').includes('text/csv')) throw new Error('Sheet unavailable');
+      const csv = await response.text();
+      if (csv.length > 2_000_000) throw new Error('Sheet too large');
+      const [headers, ...rows] = parseCsv(csv.replace(/^\uFEFF/, ''));
+      const [nameColumn, bodyColumn, authorColumn] = ['이름', '편지 내용', '글쓴이'].map(label => headers?.findIndex(value => value.trim() === label));
+      if ([nameColumn, bodyColumn].some(index => index == null || index < 0)) throw new Error('Sheet columns changed');
+      const match = rows.find(row => normalizeName(row[nameColumn]) === normalizeName(name) && String(row[bodyColumn] || '').trim());
+      return match ? { body: match[bodyColumn].trim(), author: String(match[authorColumn] || sheet.author).trim() } : null;
+    }));
+    const match = results.find(result => result.status === 'fulfilled' && result.value)?.value;
+    if (match) return res.status(200).json({ found: true, ...match });
+    if (results.some(result => result.status === 'rejected')) throw new Error('Sheet unavailable');
+    return res.status(404).json({ found: false });
   } catch (error) {
     console.error('[letter] Sheet lookup failed:', error.message);
     return res.status(503).json({ error: 'Letter service unavailable' });
