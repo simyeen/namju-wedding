@@ -263,7 +263,7 @@ body{font-family:Pretendard,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Ne
       <button class="gallery-arrow gallery-prev" type="button" aria-label="이전 사진"></button>
       <button class="gallery-arrow gallery-next" type="button" aria-label="다음 사진"></button>
     </div>
-    <div class="gallery-footer"><div class="gallery-thumbnails" role="group" aria-label="사진 선택"></div><span class="gallery-count" role="status" aria-live="polite" aria-atomic="true">1/3</span></div>
+    <div class="gallery-footer"><div class="gallery-thumbnails" role="group" aria-label="사진 선택"></div><span class="gallery-count" role="status" aria-live="polite" aria-atomic="true">1/6</span></div>
   </div></div>
 </dialog>
 <dialog id="calendar-dialog" class="feature-dialog" aria-labelledby="calendar-title">
@@ -280,6 +280,11 @@ body{font-family:Pretendard,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Ne
 const gallery=document.querySelector('.gallery');
 const openGallery=document.querySelector('.studio-more');
 const galleryPhotos=Array.from(document.querySelectorAll('.studio-stack img'),img=>({src:img.getAttribute('src'),alt:img.alt}));
+galleryPhotos.push(
+ {src:'assets/gallery-juhee-2.jpg',alt:'창가에 앉아 서로를 바라보는 남일과 주희'},
+ {src:'assets/gallery-juhee-1.jpg',alt:'손을 잡고 미소 짓는 남일과 주희'},
+ {src:'assets/gallery-juhee-3.jpg',alt:'베일을 두른 신부 주희의 웨딩 사진'}
+);
 // Keep the gallery in the same order as the photos on the page.
 const galleryPhoto=document.querySelector('.gallery-photo');
 const galleryMobile=matchMedia('(max-width:600px), (pointer:coarse) and (max-width:900px)');
