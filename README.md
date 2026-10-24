@@ -4,13 +4,21 @@ HTML, CSS, JavaScript와 이미지로 구성된 정적 사이트입니다.
 
 ## 로컬 실행
 
-저장소 폴더에서 실행합니다.
+현재 사용하는 최신 소스 위치는 `/Users/namilkim/Desktop/workspace/namju-wedding`입니다.
+서버 실행 요청 시 이 폴더에서 아래 명령을 사용하고, **포트는 3000으로 고정**합니다.
+8000번 포트나 `python3 -m http.server`로 실행하지 않습니다. 편지 조회 API도 처리하는 Node 개발 서버를 사용합니다.
 
 ```sh
+cd /Users/namilkim/Desktop/workspace/namju-wedding
 npm run dev
 ```
 
-브라우저에서 http://127.0.0.1:3000 을 엽니다.
+- Mac: http://localhost:3000
+- 모바일: Mac과 같은 Wi-Fi에 연결한 뒤 `http://<Mac의 로컬 IP>:3000`으로 접속합니다.
+- 개발 서버는 `0.0.0.0:3000`으로 수신하므로 모바일 접속이 가능합니다.
+- Mac의 Wi-Fi IP 확인: `ipconfig getifaddr en0` (네트워크가 바뀌면 IP도 달라질 수 있습니다.)
+
+예전 사본 `/Users/namilkim/Documents/ChatGPT/남주모청/namju-wedding`은 삭제했습니다. 해당 경로를 다시 만들거나 실행 대상으로 사용하지 않습니다.
 
 ## 주요 기능
 
