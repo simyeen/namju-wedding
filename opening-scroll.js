@@ -32,6 +32,7 @@
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',watchInvitationTitle,{once:true});
  else watchInvitationTitle();
  if(motion.matches){
+  image.src = new URL(image.dataset.src, document.baseURI).href;
   return;
  }
  const lockIntro=window.scrollY===0&&!location.hash;

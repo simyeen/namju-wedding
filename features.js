@@ -19,31 +19,28 @@ window.addEventListener('popstate',()=>{
   if(dialog.open&&history.state?.weddingDialog!==token)dialog.close();
  }
 });
-// Create the browsing context before navigating to a map universal link.
+// KakaoTalk may reuse its webview for target=_blank map links.
+// Ask the host to open the destination externally instead of loading it here.
+let mapReturnScroll=null;
 document.addEventListener('click',event=>{
  const link=event.target.closest('a[href]');
  if(!link||event.defaultPrevented)return;
- const url=new URL(link.href,location.href);
- if(!['map.kakao.com','map.naver.com'].includes(url.hostname))return;
- event.preventDefault();
+ const destination=new URL(link.href,location.href);
+ if(!['map.kakao.com','map.naver.com'].includes(destination.hostname))return;
+ mapReturnScroll=window.scrollY;
  if(/KAKAOTALK/i.test(navigator.userAgent)){
-  // Request Kakao's external-browser handler; never fall back to replacing this page.
-  window.location.href='kakaotalk://web/openExternal?url='+encodeURIComponent(url.href);
-  return;
- }
- const mapWindow=window.open('about:blank','_blank');
- if(!mapWindow){
-  showCopyToast('새 창이 차단되었어요. 팝업을 허용한 뒤 다시 눌러주세요.');
-  return;
- }
- try{
-  mapWindow.opener=null;
-  mapWindow.location.replace(url.href);
- }catch(_){
-  mapWindow.close();
-  showCopyToast('지도를 열지 못했어요. 브라우저에서 다시 시도해 주세요.');
+  event.preventDefault();
+  location.href='kakaotalk://web/openExternal?url='+encodeURIComponent(destination.href);
  }
 });
+function restoreMapPosition(){
+ if(mapReturnScroll===null||document.hidden)return;
+ window.scrollTo({top:mapReturnScroll,left:0,behavior:'instant'});
+ mapReturnScroll=null;
+}
+window.addEventListener('pageshow',restoreMapPosition);
+window.addEventListener('focus',restoreMapPosition);
+document.addEventListener('visibilitychange',restoreMapPosition);
 document.querySelectorAll('[data-open]').forEach(button => button.addEventListener('click', async () => {
   const dialog = byId(button.dataset.open);
   if(dialog.id === 'calendar-dialog'){
@@ -88,22 +85,19 @@ document.querySelectorAll('.feature-dialog').forEach(dialog => {
 const calendarQuery = new URLSearchParams({action:'TEMPLATE',text:'남일과 주희의 결혼식',dates:'20270130T060000Z/20270130T080000Z',ctz:'Asia/Seoul',location:'그랜드힐 컨벤션 3층 그랜드볼룸 홀, 서울 강남구 역삼로 607',details:'남일과 주희의 결혼식에 초대합니다.'});
 const googleURL = 'https://calendar.google.com/calendar/render?' + calendarQuery;
 byId('google-calendar').href = googleURL;
-// Android browsers cannot reliably open the system calendar's INSERT activity.
-// Keep a direct HTTPS event editor and avoid silently falling back to a file download.
+const deviceCalendar = byId('device-calendar');
+const calendarFileURL = new URL('wedding.ics', window.location.href).href;
+deviceCalendar.href = calendarFileURL;
+deviceCalendar.removeAttribute('target');
 if (/Android/i.test(navigator.userAgent)) {
-  byId('device-calendar').hidden = true;
+  deviceCalendar.hidden = true;
   document.querySelector('.calendar-actions').style.gridTemplateColumns = '1fr';
-  document.querySelector('.calendar-note').textContent =
-    '구글 캘린더에서 저장해 주세요. 같은 Google 계정을 삼성 캘린더에 동기화한 경우 그곳에도 표시됩니다.';
-} else if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-  byId('device-calendar').textContent = '아이폰 달력 파일';
-  document.querySelector('.calendar-note').textContent =
-    '구글 캘린더에서 저장하거나, 일정 파일을 열어 아이폰 달력에 추가해 주세요.';
-} else {
-  byId('device-calendar').textContent = '일정 파일 다운로드';
-  document.querySelector('.calendar-note').textContent =
-    '구글 캘린더에서 저장하거나, 일정 파일을 사용 중인 달력 앱으로 가져와 주세요.';
+  document.querySelector('.calendar-note').textContent = '구글 캘린더에서 일정을 추가해 주세요.';
+} else if (/iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+  deviceCalendar.textContent = '애플 캘린더';
+  document.querySelector('.calendar-note').textContent = '원하는 캘린더를 선택하고 일정을 추가해 주세요.';
 }
+
 async function copyText(text) {
   if (navigator.clipboard && window.isSecureContext) {
     try {await navigator.clipboard.writeText(text);return true;} catch (_) {}
