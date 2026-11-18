@@ -1,9 +1,10 @@
 // This GIF has a 4.3-second opening; GIF images do not emit an ended event.
 (() => {
- const image = document.querySelector('.wedding-cover img');
+ const image = document.querySelector('.wedding-cover .cover-animation');
  const root = document.documentElement;
  const motion = matchMedia('(prefers-reduced-motion: reduce)');
  if (!image) return;
+ image.addEventListener('load',()=>image.parentElement.classList.add('is-cover-ready'),{once:true});
  const cue=document.createElement('button');
  cue.type='button';
  cue.className='cover-scroll-cue';

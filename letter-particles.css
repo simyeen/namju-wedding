@@ -1,5 +1,5 @@
-.wedding-cover{position:relative;z-index:1;overflow:hidden;isolation:isolate;display:grid;place-items:center;height:100vh;height:100svh}
-.wedding-cover>img{width:100%;height:100%;min-height:0;object-fit:contain;object-position:center}
+.wedding-cover{position:relative;z-index:1;overflow:hidden;isolation:isolate;height:100vh;height:100svh}
+.wedding-cover>img{position:absolute;inset:0;width:100%;height:100%;min-height:0;object-fit:contain;object-position:center}
 .cover-scroll-cue{position:absolute;left:50%;bottom:max(24px,env(safe-area-inset-bottom));z-index:3;display:grid;place-items:center;transform:translateX(-50%);padding:7px;border:0;background:transparent;color:#782d3d;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .45s ease,visibility .45s}
 .cover-scroll-cue svg{width:36px;height:36px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .cover-scroll-cue.is-visible{opacity:1;visibility:visible;pointer-events:auto}
@@ -20,3 +20,7 @@
 .letter-panel .letter-open{position:static;width:100%;height:50px;border-radius:13px;margin:0;font-size:15px}
 #letter-dialog:not(.is-reading) .letter-envelope-motion{display:none}
 @media(prefers-reduced-motion:reduce){.cover-confetti{display:none}.cover-scroll-cue,.cover-scroll-cue.is-visible svg{animation:none;transition:none}}
+
+.wedding-cover>.cover-animation{opacity:0}
+.wedding-cover.is-cover-ready>.cover-animation{opacity:1}
+.wedding-cover.is-cover-ready>.cover-placeholder{visibility:hidden}
