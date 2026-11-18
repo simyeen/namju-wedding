@@ -8,8 +8,8 @@
 .cover-scroll-cue:focus-visible{outline:2px solid #782d3d;outline-offset:2px}
 .cover-confetti{position:fixed;inset:0;pointer-events:none;z-index:2;overflow:hidden;mix-blend-mode:multiply}
 .cover-confetti i{position:absolute;left:var(--x);top:-25px;width:18px;height:22px;opacity:0;animation:cover-paper-fall var(--duration) linear var(--delay) infinite}
-.cover-confetti i::before{content:"";display:block;width:18px;height:22px;background:url('assets/confetti-source.jpeg') -278px -23px/1200px 682px no-repeat;transform:scale(.65)}
-.cover-confetti i:nth-child(even)::before{background-position:-118px -46px}
+.cover-confetti i::before{content:"";display:block;width:18px;height:22px;background:url('assets/confetti-piece-1.png') center/18px 22px no-repeat;transform:scale(.65)}
+.cover-confetti i:nth-child(even)::before{background-image:url('assets/confetti-piece-2.png')}
 @keyframes cover-paper-fall{0%{opacity:0;transform:translate(0,-20px) rotate(0)}4%,90%{opacity:1}100%{opacity:0;transform:translate(var(--drift),var(--fall-height,800px)) rotate(400deg)}}
 .letter-panel{padding:56px 8.205% 64px;background:repeating-linear-gradient(90deg,#fffdf4 0 18px,#f8ede6 18px 24px);line-height:normal}
 .letter-intro{text-align:center}

@@ -13,24 +13,6 @@
  cue.addEventListener('click',()=>document.querySelector('.invitation-panel')?.scrollIntoView({behavior:'smooth'}));
  let done = false;
  let started = false;
- let invitationTitleShown=false;
- const updateCue=()=>cue.classList.toggle('is-visible',done&&!invitationTitleShown&&window.scrollY<40);
- window.addEventListener('scroll',updateCue,{passive:true});
- const watchInvitationTitle=()=>{
-  const invitation=document.querySelector('.invitation-panel');
-  if(!invitation)return;
-  const title=invitation.querySelectorAll('.invitation-line')[1];
-  if(!title)return;
-  const observer=new MutationObserver(()=>{
-   if(title.classList.contains('is-revealed')){
-    invitationTitleShown=true;updateCue();observer.disconnect();
-   }
-  });
-  observer.observe(title,{attributes:true,attributeFilter:['class']});
-  if(title.classList.contains('is-revealed')){invitationTitleShown=true;updateCue();observer.disconnect();}
- };
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',watchInvitationTitle,{once:true});
- else watchInvitationTitle();
  if(motion.matches){
   image.src = new URL(image.dataset.src, document.baseURI).href;
   return;
@@ -43,7 +25,7 @@
   clearTimeout(releaseTimer);
   clearTimeout(safetyTimer);
   root.classList.remove('intro-playing');
-  updateCue();
+  cue.classList.add('is-visible');
  };
  // Never leave the page locked if the image fails or its load event is lost.
  const safetyTimer = setTimeout(release, 12000);

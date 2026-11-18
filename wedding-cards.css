@@ -11,7 +11,7 @@
 .faq-carousel{overflow-x:auto;scroll-snap-type:none;scrollbar-width:none;overscroll-behavior-x:contain}
 .faq-carousel::-webkit-scrollbar{display:none}
 .faq-cards{display:flex;gap:12px;padding:0 8.2%;align-items:stretch}
-.faq-card:nth-child(6n){margin-right:28px}
+.faq-card.faq-cycle-end{margin-right:28px}
 .faq-cards::after{content:'';flex:0 0 13%;}
 .faq-card{box-sizing:border-box;flex:0 0 80%;min-width:0;min-height:280px;padding:42px 20px 20px;background:#fff;border-radius:13px;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;font-family:Pretendard,sans-serif}
 .faq-card-number{font-size:14px;line-height:1;color:#782d3d;margin-bottom:18px}
@@ -58,3 +58,12 @@
 
 .wedding-faq #faq-title{margin-bottom:20px}
 .wedding-faq #faq-title img{width:130px;max-width:calc(100% - 40px);height:21.04px;object-fit:contain;margin:0 auto}
+
+/* Mascot greeting */
+button.faq-heart-mascot{display:block;padding:0;border:0;background:transparent;cursor:pointer;touch-action:manipulation}
+.faq-heart-mascot img{display:block;width:100%;height:100%;object-fit:contain;transform-origin:center bottom;transition:transform .22s ease}
+.faq-heart-mascot:focus-visible{outline:solid currentColor;outline-offset:4px}
+@media(hover:hover){.faq-heart-mascot:hover img{animation:mascot-greeting .6s ease-in-out}}
+.faq-heart-mascot:active img{transform:rotate(-5deg) scale(.96)}
+@keyframes mascot-greeting{0%,100%{transform:rotate(0)}30%{transform:rotate(-5deg)}65%{transform:rotate(4deg)}}
+@media(prefers-reduced-motion:reduce){.faq-heart-mascot img{transition:none}.faq-heart-mascot:hover img{animation:none}.faq-heart-mascot:active img{transform:none}}

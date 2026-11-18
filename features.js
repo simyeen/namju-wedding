@@ -122,6 +122,13 @@ function showCopyToast(message,duration=1000) {
    copyToastClearTimer = setTimeout(() => { toast.textContent = ''; }, 300);
  }, duration);
 }
+const mascot=document.querySelector('.faq-heart-mascot');
+const showMascotGreeting=()=>showCopyToast('저는 남주하우스에 같이 사는 뱀뱀이에요!',3000);
+mascot?.addEventListener('pointerenter',event=>{
+ if(event.pointerType==='mouse')showMascotGreeting();
+});
+mascot?.addEventListener('pointerdown',showMascotGreeting);
+mascot?.addEventListener('click',showMascotGreeting);
 document.querySelectorAll('[data-copy]').forEach(button => {
  const label = document.createElement('span');
  label.className = 'copy-label';
@@ -235,8 +242,10 @@ byId('letter-form').addEventListener('submit',async event=>{
   if(response.status!==404){
    if(!response.ok)throw new Error('lookup failed');
    const data=await response.json();
-   letter=['',data.body];
-   author=data.author;
+   if(typeof data.body==='string'&&data.body.trim()){
+    letter=['',data.body];
+    author=data.author;
+   }
   }
  } catch (_) {
   if(openingVersion===letterOpeningVersion&&byId('letter-dialog').open){
@@ -257,7 +266,7 @@ byId('letter-form').addEventListener('submit',async event=>{
  byId('letter-status').textContent='';
  byId('letter-theme').textContent=letter[0];
  byId('letter-body').textContent=letter[1];
- byId('letter-content').lastElementChild.textContent='마음을 담아,\n'+author;
+ byId('letter-author').textContent=author.replace(/[.。]+$/, '');
  const dialog=byId('letter-dialog');
  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
  const fadeOut=reduced?null:dialog.animate([{opacity:1},{opacity:0,transform:'translateY(-6px)'}],{duration:240,easing:'ease-in',fill:'forwards'});
@@ -302,6 +311,8 @@ const mapScript=document.createElement('script');mapScript.src='https://oapi.map
  const carousel=document.querySelector('.faq-carousel');
  const track=carousel.querySelector('.faq-cards');
  const originals=[...track.querySelectorAll('.faq-card')];
+ // Mark the actual cycle boundary before cloning, regardless of card count.
+ originals.at(-1)?.classList.add('faq-cycle-end');
  for(let group=1;group<=2;group++)originals.forEach(card=>{
   const copy=card.cloneNode(true);
   const answer=copy.querySelector('.faq-card-answer');
