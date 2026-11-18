@@ -1,5 +1,20 @@
 'use strict';
 const byId = id => document.getElementById(id);
+// Start the existing one-shot envelope animation only near its section.
+(()=>{
+ const envelope=document.querySelector('.burgundy-envelope');
+ if(!envelope)return;
+ const load=()=>envelope.classList.add('is-loading-animation');
+ if(!('IntersectionObserver' in window)){load();return;}
+ const observer=new IntersectionObserver(entries=>{
+  if(entries.some(entry=>entry.isIntersecting)){
+   load();
+   observer.disconnect();
+  }
+ },{rootMargin:'600px 0px',threshold:0});
+ observer.observe(envelope);
+})();
+
 const dialogHistory=new Map();
 let dialogHistorySequence=0;
 function showWeddingDialog(dialog){
